@@ -45,7 +45,7 @@ jobs:
     - name: Execute Automated Tests
       run: php artisan test tests/Feature
 
-  # 2. Job untuk Build Docker Image
+  # 2. Job untuk Build & Push Docker Image ke Docker Hub
   build-docker:
     needs: testing
     runs-on: ubuntu-latest
@@ -53,5 +53,15 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Build Docker Image
-      run: docker build -t fullstackflavour-app:latest .
+    - name: Login ke Docker Hub
+      run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+    - name: Build Docker Image (Tag Latest & Commit SHA)
+      run: |
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/fullstackflavour-app:latest .
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/fullstackflavour-app:${{ github.sha }} .
+
+    - name: Push Image ke Docker Hub
+      run: |
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/fullstackflavour-app:latest
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/fullstackflavour-app:${{ github.sha }}
