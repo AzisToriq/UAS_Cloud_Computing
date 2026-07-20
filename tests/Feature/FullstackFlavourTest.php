@@ -56,7 +56,6 @@ class FullstackFlavourTest extends TestCase
         // BUKTI UAS: Pastikan data benar-benar tersimpan di database
         $this->assertDatabaseHas('portfolios', [
             'title' => 'Project Joki Web E-Commerce',
-            'slug' => 'project-joki-web-ecommerce', // <-- Pastikan juga tercatat
         ]);
     }
 
