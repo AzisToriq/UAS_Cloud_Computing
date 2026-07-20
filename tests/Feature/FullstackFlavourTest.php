@@ -19,8 +19,8 @@ class FullstackFlavourTest extends TestCase
     {
         $response = $this->get('/');
 
-        // Memastikan status HTTP 500 (Internal Server Error)
-        $response->assertStatus(500);
+        // Memastikan status HTTP 200 (OK)
+        $response->assertStatus(200);
     }
 
     /**
