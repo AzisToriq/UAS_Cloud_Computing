@@ -45,6 +45,7 @@ class FullstackFlavourTest extends TestCase
         // Action: Simulasikan login dan submit form tambah portofolio
         $response = $this->actingAs($admin)->post('/admin/portfolios', [
             'title' => 'Project Joki Web E-Commerce',
+            'slug' => 'project-joki-web-ecommerce', // <-- INI YANG DITAMBAHKAN BRE!
             'description' => 'Membuat website e-commerce dengan Laravel untuk klien.',
             'link' => 'https://github.com/fullstackflavour/ecommerce'
         ]);
@@ -55,6 +56,7 @@ class FullstackFlavourTest extends TestCase
         // BUKTI UAS: Pastikan data benar-benar tersimpan di database
         $this->assertDatabaseHas('portfolios', [
             'title' => 'Project Joki Web E-Commerce',
+            'slug' => 'project-joki-web-ecommerce', // <-- Pastikan juga tercatat
         ]);
     }
 
@@ -68,6 +70,7 @@ class FullstackFlavourTest extends TestCase
         // Action: Submit form tapi 'title' sengaja tidak diisi (null)
         $response = $this->actingAs($admin)->post('/admin/portfolios', [
             'title' => '',
+            'slug' => 'tanpa-judul', // <-- Tambahkan juga biar aman dari error validasi lain
             'description' => 'Deskripsi saja tanpa judul.',
         ]);
 
