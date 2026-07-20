@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # 1. Service Aplikasi (Laravel)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexus_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+      - /var/www/html/vendor
+    networks:
+      - nexus_network
+    depends_on:
+      - db
+
+ # 2. Service Web Server (Nginx)
+  web:
+    image: nginx:alpine
+    container_name: nexus_web
+    restart: unless-stopped
+    ports:
+      - "8888:80"
+    volumes:
+      - ./:/var/www/html
+
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - nexus_network
+    depends_on:
+      - app
+
+  # 3. Service Database (MySQL)
+  db:
+    image: mysql:8.0
+    container_name: nexus_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      # MYSQL_USER dan MYSQL_PASSWORD telah dihapus untuk mencegah bentrok user root
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql # BUKTI UAS: Persistent Volume
+    networks:
+      - nexus_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+# BUKTI UAS: Deklarasi Network Terisolasi
+networks:
+  nexus_network:
+    driver: bridge
+
+# BUKTI UAS: Deklarasi Persistent Volume
+volumes:
+  db_data:

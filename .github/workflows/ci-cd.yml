@@ -1,0 +1,56 @@
+name: CI/CD FullstackFlavour Pipeline
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  # 1. Job untuk menjalankan Automated Testing (Quality Gate)
+  testing:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: mbstring, dom, fileinfo, mysql, pdo_mysql
+
+    - name: Copy .env
+      run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+
+    - name: Install Dependencies
+      run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+
+    - name: Generate App Key
+      run: php artisan key:generate
+
+    - name: Create Database for Testing
+      run: touch database/database.sqlite
+
+    - name: Set DB Environment to SQLite for Testing
+      run: |
+        sed -i 's/DB_CONNECTION=mysql/DB_CONNECTION=sqlite/g' .env
+        sed -i 's/DB_HOST=db/#DB_HOST=db/g' .env
+        sed -i 's/DB_PORT=3306/#DB_PORT=3306/g' .env
+
+    - name: Run Migrations
+      run: php artisan migrate:fresh
+
+    - name: Execute Automated Tests
+      run: php artisan test
+
+  # 2. Job untuk Build Docker Image (Hanya berjalan jika Job Testing Sukses)
+  build-docker:
+    needs: testing
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Build Docker Image
+      run: docker build -t fullstackflavour-app:latest .
