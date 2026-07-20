@@ -7,11 +7,13 @@ on:
     branches: [ "main", "master" ]
 
 jobs:
-  # 1. Job untuk menjalankan Automated Testing (Quality Gate)
+  # ==========================================
+  # 1. QUALITY GATE: Automated Testing
+  # ==========================================
   testing:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout Code (Updated to v4)
+    - name: Checkout Code
       uses: actions/checkout@v4
 
     - name: Setup PHP
@@ -20,48 +22,46 @@ jobs:
         php-version: '8.2'
         extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite
 
-    - name: Copy .env
-      run: cp .env.example .env
-
-    - name: Install Composer Dependencies
-      run: composer install -q --no-ansi --no-interaction --prefer-dist
-
-    - name: Install NPM & Build Frontend (Vite)
+    - name: Copy Configuration & Install Dependencies
       run: |
+        cp .env.example .env
+        composer install -q --no-ansi --no-interaction --prefer-dist
         npm install
         npm run build
 
-    - name: Directory Permissions (Wajib untuk Linux)
+    - name: Directory Permissions
       run: chmod -R 777 storage bootstrap/cache
 
-    - name: Generate App Key
+    - name: Prepare Application
       run: php artisan key:generate
 
-    - name: Configure SQLite for Testing
+    - name: Configure SQLite for CI Environment
       run: |
         touch database/database.sqlite
         sed -i 's/DB_CONNECTION=mysql/DB_CONNECTION=sqlite/g' .env
 
-    - name: Execute Automated Tests
+    - name: Execute Automated Tests (PHPUnit)
       run: php artisan test tests/Feature
 
-  # 2. Job untuk Build & Push Docker Image ke Docker Hub
+  # ==========================================
+  # 2. DELIVERY: Build & Push Docker Image
+  # ==========================================
   build-docker:
-    needs: testing
+    needs: testing # Memastikan image HANYA di-build jika testing lolos
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Login ke Docker Hub
+    - name: Authenticate to Docker Hub
       run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-    - name: Build Docker Image (Tag Latest & Commit SHA)
+    - name: Build Docker Image (Latest & Commit SHA)
       run: |
         docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/fullstackflavour-app:latest .
         docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/fullstackflavour-app:${{ github.sha }} .
 
-    - name: Push Image ke Docker Hub
+    - name: Push Image to Docker Hub Registry
       run: |
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/fullstackflavour-app:latest
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/fullstackflavour-app:${{ github.sha }}
